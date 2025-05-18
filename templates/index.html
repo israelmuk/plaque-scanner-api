@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Détecteur de plaque RDC</title>
+  <title>Scanner de plaque RDC</title>
   <style>
     body { font-family: Arial; max-width: 600px; margin: auto; padding: 2rem; }
     h1 { text-align: center; color: #003f88; }
@@ -21,36 +21,29 @@
     <input type="file" id="image" accept="image/*" required />
     <button type="submit">Scanner</button>
   </form>
-
   <div id="result"></div>
-
   <script>
     const form = document.getElementById('form');
     const imageInput = document.getElementById('image');
     const resultDiv = document.getElementById('result');
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const file = imageInput.files[0];
       if (!file) return;
-
       resultDiv.innerHTML = '<p class="loading">Analyse en cours...</p>';
-
       const formData = new FormData();
       formData.append('image', file);
-
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData
-      });
-
+      const response = await fetch('/upload', { method: 'POST', body: formData });
       const data = await response.json();
-
-      resultDiv.innerHTML = `
-        <img src="${URL.createObjectURL(file)}" alt="Image scannée" />
+      let html = `
+        <img src="${URL.createObjectURL(file)}" alt="Image originale" />
         <p><strong>Plaque détectée :</strong> ${data.plaque}</p>
         <p><strong>Propriétaire :</strong> ${data.proprietaire}</p>
       `;
+      if (data.image_url) {
+        html += `<h4>Zone détectée :</h4><img src="${data.image_url}" alt="Plaque détectée" />`;
+      }
+      resultDiv.innerHTML = html;
     });
   </script>
 </body>
