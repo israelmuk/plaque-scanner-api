@@ -25,7 +25,6 @@
     let scanning = false;
     let intervalId = null;
 
-    // Initialisation caméra
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       .then(stream => { video.srcObject = stream; })
       .catch(err => { alert('Erreur accès caméra : ' + err); });
@@ -34,7 +33,7 @@
       scanning = !scanning;
       btnText.textContent = scanning ? 'Arrêter' : 'Démarrer';
       if (scanning) {
-        intervalId = setInterval(captureAndSend, 5000); // toutes les 5 secondes
+        intervalId = setInterval(captureAndSend, 5000);
       } else {
         clearInterval(intervalId);
       }

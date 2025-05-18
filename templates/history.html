@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Historique des scans</title>
+  <style>
+    body { font-family: Arial; max-width: 900px; margin: auto; padding: 2rem; }
+    h1 { text-align: center; color: #003f88; }
+    table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
+    th, td { padding: 0.7rem; border: 1px solid #ccc; text-align: center; }
+    img { max-width: 100px; }
+    a { text-decoration: none; color: #003f88; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Historique des scans</h1>
+  <a href="/scan">← Revenir au scanner</a>
+  <table>
+    <thead>
+      <tr>
+        <th>Plaque</th>
+        <th>Propriétaire</th>
+        <th>Image</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row[0] }}</td>
+        <td>{{ row[1] }}</td>
+        <td>{% if row[2] %}<img src="{{ row[2] }}" alt="plaque">{% endif %}</td>
+        <td>{{ row[3] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
