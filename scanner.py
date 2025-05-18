@@ -13,12 +13,12 @@ def scan_plate(image_path):
 
     config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     raw_text = pytesseract.image_to_string(thresh, config=config)
-    plate_number = "".join(raw_text.split())
+    plate = "".join(raw_text.split())
 
     owner = "Inconnu"
     if os.path.exists("owners.json"):
         with open("owners.json", "r") as f:
             data = json.load(f)
-            owner = data.get(plate_number, "Inconnu")
+            owner = data.get(plate, "Inconnu")
 
-    return {"plaque": plate_number, "proprietaire": owner}
+    return {"plaque": plate, "proprietaire": owner}
