@@ -24,7 +24,6 @@ def detect_white_rectangle_with_drapeau(image):
         x, y, w, h = cv2.boundingRect(approx)
         aspect_ratio = w / float(h)
 
-        # Condition typique d'une plaque (allongée horizontalement)
         if len(approx) == 4 and 2 < aspect_ratio < 6 and w > 150:
             roi = image[y:y+h, x:x+w]
             return roi
@@ -46,10 +45,15 @@ def scan_plate(image_path):
     gray = cv2.equalizeHist(gray)
     _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    raw_text = pytesseract.image_to_string(thresh, config=config)
-    clean_text = "".join(raw_text.split())
+    # Détail OCR avec niveaux
+    data = pytesseract.image_to_data(thresh, output_type=pytesseract.Output.DICT, config='--oem 3 --psm 6')
+    extracted_text = ""
 
+    for i in range(len(data['text'])):
+        if int(data['conf'][i]) > 60 and int(data['height'][i]) > 25:
+            extracted_text += data['text'][i].strip()
+
+    clean_text = "".join(extracted_text.split())
     plate_number = extraire_plaque_valide(clean_text)
     if not plate_number:
         plate_number = clean_text
