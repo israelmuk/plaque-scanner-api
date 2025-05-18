@@ -5,46 +5,63 @@
   <title>Scanner de plaque RDC</title>
   <style>
     body { font-family: Arial; max-width: 600px; margin: auto; padding: 2rem; }
-    h1 { text-align: center; color: #003f88; }
+    video, canvas, img { max-width: 100%; border-radius: 8px; margin-top: 1rem; }
     #result { margin-top: 2rem; }
-    #result img { max-width: 100%; margin-bottom: 1rem; }
-    label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
-    input[type="file"] { margin-bottom: 1rem; }
-    button { background-color: #003f88; color: white; padding: 0.7rem 1.5rem; border: none; cursor: pointer; }
-    .loading { color: #999; }
+    button { background-color: #003f88; color: white; padding: 10px 20px; border: none; margin-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Scanner de plaque RDC</h1>
-  <form id="form">
-    <label>Choisissez une photo :</label>
-    <input type="file" id="image" accept="image/*" required />
-    <button type="submit">Scanner</button>
-  </form>
+  <h1>Scanner automatique de plaque</h1>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <button onclick="toggleScanning()"><span id="btn-text">Démarrer</span> le scan automatique</button>
   <div id="result"></div>
+
   <script>
-    const form = document.getElementById('form');
-    const imageInput = document.getElementById('image');
-    const resultDiv = document.getElementById('result');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const file = imageInput.files[0];
-      if (!file) return;
-      resultDiv.innerHTML = '<p class="loading">Analyse en cours...</p>';
-      const formData = new FormData();
-      formData.append('image', file);
-      const response = await fetch('/upload', { method: 'POST', body: formData });
-      const data = await response.json();
-      let html = `
-        <img src="${URL.createObjectURL(file)}" alt="Image originale" />
-        <p><strong>Plaque détectée :</strong> ${data.plaque}</p>
-        <p><strong>Propriétaire :</strong> ${data.proprietaire}</p>
-      `;
-      if (data.image_url) {
-        html += `<h4>Zone détectée :</h4><img src="${data.image_url}" alt="Plaque détectée" />`;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const result = document.getElementById('result');
+    const btnText = document.getElementById('btn-text');
+    let scanning = false;
+    let intervalId = null;
+
+    // Initialisation caméra
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { alert('Erreur accès caméra : ' + err); });
+
+    function toggleScanning() {
+      scanning = !scanning;
+      btnText.textContent = scanning ? 'Arrêter' : 'Démarrer';
+      if (scanning) {
+        intervalId = setInterval(captureAndSend, 5000); // toutes les 5 secondes
+      } else {
+        clearInterval(intervalId);
       }
-      resultDiv.innerHTML = html;
-    });
+    }
+
+    function captureAndSend() {
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        formData.append('image', blob, `scan-${timestamp}.jpg`);
+        result.innerHTML = "<p>Analyse en cours...</p>";
+
+        const response = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        let html = `<p><strong>Plaque :</strong> ${data.plaque}</p><p><strong>Propriétaire :</strong> ${data.proprietaire}</p>`;
+        if (data.image_url) {
+          html += `<img src="${data.image_url}" alt="Plaque détectée">`;
+        }
+        result.innerHTML = html;
+      }, 'image/jpeg');
+    }
   </script>
 </body>
 </html>
