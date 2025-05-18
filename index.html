@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Scanner de plaque RDC</title>
+  <style>
+    body { font-family: Arial; max-width: 700px; margin: auto; padding: 2rem; }
+    video, canvas, img { max-width: 100%; margin-top: 1rem; border-radius: 8px; }
+    #result { margin-top: 2rem; }
+    input[type="file"], button { margin-top: 1rem; padding: 10px 20px; }
+    button { background-color: #003f88; color: white; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Scanner de plaque RDC</h1>
+
+  <!-- Caméra -->
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <button onclick="toggleScan()"><span id="btn-text">Démarrer</span> le scan automatique (caméra)</button>
+
+  <!-- Ou téléchargement -->
+  <h3>Ou téléchargez une image :</h3>
+  <form id="upload-form">
+    <input type="file" id="upload-image" accept="image/*" required />
+    <button type="submit">Scanner l’image téléchargée</button>
+  </form>
+
+  <!-- Résultat -->
+  <div id="result"></div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const result = document.getElementById('result');
+    const btnText = document.getElementById('btn-text');
+    let scanning = false;
+    let intervalId = null;
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { console.error("Erreur caméra", err); });
+
+    function toggleScan() {
+      scanning = !scanning;
+      btnText.textContent = scanning ? 'Arrêter' : 'Démarrer';
+      if (scanning) {
+        intervalId = setInterval(() => captureAndSend('video'), 5000);
+      } else {
+        clearInterval(intervalId);
+      }
+    }
+
+    function captureAndSend(source) {
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob(blob => sendToServer(blob), 'image/jpeg');
+    }
+
+    function sendToServer(blob) {
+      const formData = new FormData();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      formData.append('image', blob, `capture-${timestamp}.jpg`);
+      result.innerHTML = "<p>Analyse en cours...</p>";
+
+      fetch('/upload', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          let html = `<p><strong>Plaque :</strong> ${data.plaque}</p><p><strong>Propriétaire :</strong> ${data.proprietaire}</p>`;
+          if (data.image_url) {
+            html += `<img src="${data.image_url}" alt="Plaque détectée">`;
+          }
+          result.innerHTML = html;
+        });
+    }
+
+    // Upload d’image manuelle
+    const uploadForm = document.getElementById('upload-form');
+    const uploadInput = document.getElementById('upload-image');
+    uploadForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const file = uploadInput.files[0];
+      if (!file) return;
+      sendToServer(file);
+    });
+  </script>
+</body>
+</html>
