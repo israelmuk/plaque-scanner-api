@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, render_template
-from scanner import scan_plate
+from scanner_openai import scan_plate
 import os
 import sqlite3
 from datetime import datetime
