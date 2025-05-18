@@ -2,14 +2,27 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Scan Plaque</title>
+    <title>Scanner une Plaque</title>
     <script defer src="/static/script.js"></script>
+    <style>
+        video, canvas { border: 1px solid #ccc; border-radius: 4px; }
+        .zone-crop { border: 2px dashed red; position: absolute; width: 280px; height: 60px; top: 90px; left: 20px; pointer-events: none; }
+    </style>
 </head>
 <body>
-    <h2>Scanner une Plaque</h2>
-    <video id="video" autoplay width="320" height="240"></video><br>
+    <h2>Scanner une Plaque d’Immatriculation</h2>
+
+    <label for="cameraSelect">Choisir une caméra :</label>
+    <select id="cameraSelect"></select><br><br>
+
+    <div style="position: relative; display: inline-block;">
+        <video id="video" autoplay muted width="320" height="240"></video>
+        <div class="zone-crop"></div>
+    </div><br>
+
     <button id="snap">Prendre la photo</button>
-    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <input type="file" id="uploadInput"><br><br>
+    <canvas id="canvas" width="280" height="60" style="display:none;"></canvas>
     <p id="result"></p>
 </body>
 </html>
