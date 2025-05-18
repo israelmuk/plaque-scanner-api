@@ -4,37 +4,42 @@ import os
 import json
 import re
 import difflib
+import numpy as np
 
 def extraire_plaque_valide(text):
     matches = re.findall(r'\b\d{4}[A-Z]{2}\d{2}\b', text)
     return matches[0] if matches else ""
 
-def detect_plate_region(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.bilateralFilter(gray, 11, 17, 17)
-    edged = cv2.Canny(blur, 30, 200)
+def detect_white_rectangle_with_drapeau(image):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    contours, _ = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
+    # Détection du blanc (zone principale de la plaque)
+    white_lower = np.array([0, 0, 200], dtype=np.uint8)
+    white_upper = np.array([180, 30, 255], dtype=np.uint8)
+    white_mask = cv2.inRange(hsv, white_lower, white_upper)
 
-    for contour in contours:
-        approx = cv2.approxPolyDP(contour, 0.018 * cv2.arcLength(contour, True), True)
-        if len(approx) == 4:
-            x, y, w, h = cv2.boundingRect(approx)
-            plate = image[y:y+h, x:x+w]
-            return plate
+    contours, _ = cv2.findContours(white_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        approx = cv2.approxPolyDP(cnt, 0.03 * cv2.arcLength(cnt, True), True)
+        x, y, w, h = cv2.boundingRect(approx)
+        aspect_ratio = w / float(h)
 
-    return None  # si rien trouvé
+        # Condition typique d'une plaque (allongée horizontalement)
+        if len(approx) == 4 and 2 < aspect_ratio < 6 and w > 150:
+            roi = image[y:y+h, x:x+w]
+            return roi
+
+    return None
 
 def scan_plate(image_path):
     if not os.path.exists(image_path):
         return {"plaque": "", "proprietaire": "Image non trouvée"}
 
     img = cv2.imread(image_path)
-    plate_img = detect_plate_region(img)
+    plate_img = detect_white_rectangle_with_drapeau(img)
 
     if plate_img is None:
-        plate_img = img  # fallback si aucune plaque détectée
+        plate_img = img  # fallback
 
     gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
     gray = cv2.bilateralFilter(gray, 11, 17, 17)
