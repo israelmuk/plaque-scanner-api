@@ -44,6 +44,31 @@ def detect_white_rectangle_with_drapeau(image):
 
     return None
 
+def preprocess_plate_image(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blur = cv2.bilateralFilter(gray, 11, 17, 17)
+    edged = cv2.Canny(blur, 30, 200)
+
+    coords = np.column_stack(np.where(edged > 0))
+    if coords.shape[0] > 0:
+        angle = cv2.minAreaRect(coords)[-1]
+        if angle < -45:
+            angle = -(90 + angle)
+        else:
+            angle = -angle
+    else:
+        angle = 0
+
+    (h, w) = img.shape[:2]
+    M = cv2.getRotationMatrix2D((w // 2, h // 2), angle, 1.0)
+    rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+
+    gray_rotated = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+    thresh = cv2.adaptiveThreshold(gray_rotated, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                   cv2.THRESH_BINARY_INV, 25, 15)
+
+    return thresh
+
 def scan_plate(image_path):
     if not os.path.exists(image_path):
         return {"plaque": "", "proprietaire": "Image non trouvée"}
@@ -53,18 +78,13 @@ def scan_plate(image_path):
     if plate_img is None:
         plate_img = img
 
-    gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    gray = cv2.equalizeHist(gray)
-    _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    preprocessed = preprocess_plate_image(plate_img)
 
     config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    raw_text = pytesseract.image_to_string(thresh, config=config)
+    raw_text = pytesseract.image_to_string(preprocessed, config=config, lang='eng+fra')
     clean_text = "".join(raw_text.split())
 
-    plate_number = extraire_plaque_valide(clean_text)
-    if not plate_number:
-        plate_number = clean_text
+    plate_number = extraire_plaque_valide(clean_text) or clean_text
 
     owner = "Inconnu"
     if os.path.exists("owners.json"):

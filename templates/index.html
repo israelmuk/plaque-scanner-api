@@ -1,28 +1,57 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Scanner une Plaque</title>
-    <script defer src="/static/script.js"></script>
-    <style>
-        video, canvas { border: 1px solid #ccc; border-radius: 4px; }
-        .zone-crop { border: 2px dashed red; position: absolute; width: 280px; height: 60px; top: 90px; left: 20px; pointer-events: none; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Détecteur de plaque RDC</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: auto; padding: 2rem; }
+    h1 { text-align: center; color: #003f88; }
+    #result { margin-top: 2rem; }
+    #result img { max-width: 100%; margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+    input[type="file"] { margin-bottom: 1rem; }
+    button { background-color: #003f88; color: white; padding: 0.7rem 1.5rem; border: none; cursor: pointer; }
+    .loading { color: #999; }
+  </style>
 </head>
 <body>
-    <h2>Scanner une Plaque d’Immatriculation</h2>
+  <h1>Scanner de plaque RDC</h1>
+  <form id="form">
+    <label>Choisissez une photo :</label>
+    <input type="file" id="image" accept="image/*" required />
+    <button type="submit">Scanner</button>
+  </form>
 
-    <label for="cameraSelect">Choisir une caméra :</label>
-    <select id="cameraSelect"></select><br><br>
+  <div id="result"></div>
 
-    <div style="position: relative; display: inline-block;">
-        <video id="video" autoplay muted width="320" height="240"></video>
-        <div class="zone-crop"></div>
-    </div><br>
+  <script>
+    const form = document.getElementById('form');
+    const imageInput = document.getElementById('image');
+    const resultDiv = document.getElementById('result');
 
-    <button id="snap">Prendre la photo</button>
-    <input type="file" id="uploadInput"><br><br>
-    <canvas id="canvas" width="280" height="60" style="display:none;"></canvas>
-    <p id="result"></p>
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = imageInput.files[0];
+      if (!file) return;
+
+      resultDiv.innerHTML = '<p class="loading">Analyse en cours...</p>';
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      resultDiv.innerHTML = `
+        <img src="${URL.createObjectURL(file)}" alt="Image scannée" />
+        <p><strong>Plaque détectée :</strong> ${data.plaque}</p>
+        <p><strong>Propriétaire :</strong> ${data.proprietaire}</p>
+      `;
+    });
+  </script>
 </body>
 </html>
