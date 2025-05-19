@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, render_template
-from scanner_plate_recognizer import scan_plate
 import os
 import sqlite3
 from datetime import datetime
@@ -33,6 +32,19 @@ def upload():
     image = request.files.get('image')
     if not image:
         return jsonify({"error": "Aucune image reçue"}), 400
+
+    mode = request.form.get("mode", "plate")
+
+    if mode == "plate":
+        from scanner_plate_recognizer import scan_plate
+    elif mode == "openai":
+        from scanner_openai import scan_plate
+    elif mode == "local":
+        from scanner import scan_plate
+    elif mode == "deepseek":
+        from scanner_deepseek import scan_plate
+    else:
+        return jsonify({"error": "Mode de scan inconnu"}), 400
 
     filename = datetime.now().strftime('%Y%m%d%H%M%S_') + image.filename
     path = os.path.join(UPLOAD_FOLDER, filename)
