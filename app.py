@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, render_template
-from scanner_openai import scan_plate
+from scanner_plate_recognizer import scan_plate
 import os
 import sqlite3
 from datetime import datetime
@@ -45,7 +45,6 @@ def upload():
         image_url = "/plate-image/" + os.path.basename(cropped_path)
         result["image_url"] = image_url
 
-    # Enregistrement dans la base de données
     save_to_db(result["plaque"], result["proprietaire"], image_url)
 
     return jsonify(result)
@@ -62,5 +61,6 @@ def history():
     rows = c.fetchall()
     conn.close()
     return render_template('history.html', rows=rows)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

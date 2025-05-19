@@ -7,26 +7,33 @@
     body { font-family: Arial; max-width: 700px; margin: auto; padding: 2rem; }
     video, canvas, img { max-width: 100%; margin-top: 1rem; border-radius: 8px; }
     #result { margin-top: 2rem; }
-    input[type="file"], button { margin-top: 1rem; padding: 10px 20px; }
+    select, input[type="file"], button { margin-top: 1rem; padding: 10px 20px; }
     button { background-color: #003f88; color: white; border: none; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>Scanner de plaque RDC</h1>
 
+  <!-- Choix de la méthode -->
+  <label for="mode">Méthode de détection :</label>
+  <select id="mode">
+    <option value="plate">Plate Recognizer</option>
+    <option value="openai">OpenAI Vision</option>
+    <option value="local">OCR Local (Tesseract)</option>
+  </select>
+
   <!-- Caméra -->
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas" style="display:none;"></canvas>
-  <button onclick="toggleScan()"><span id="btn-text">Démarrer</span> le scan automatique (caméra)</button>
+  <button onclick="toggleScan()"><span id="btn-text">Démarrer</span> scan auto (caméra)</button>
 
-  <!-- Ou téléchargement -->
+  <!-- Upload image -->
   <h3>Ou téléchargez une image :</h3>
   <form id="upload-form">
     <input type="file" id="upload-image" accept="image/*" required />
-    <button type="submit">Scanner l’image téléchargée</button>
+    <button type="submit">Scanner l’image</button>
   </form>
 
-  <!-- Résultat -->
   <div id="result"></div>
 
   <script>
@@ -34,6 +41,7 @@
     const canvas = document.getElementById('canvas');
     const result = document.getElementById('result');
     const btnText = document.getElementById('btn-text');
+    const mode = document.getElementById('mode');
     let scanning = false;
     let intervalId = null;
 
@@ -63,12 +71,14 @@
       const formData = new FormData();
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       formData.append('image', blob, `capture-${timestamp}.jpg`);
+      formData.append('mode', mode.value);
       result.innerHTML = "<p>Analyse en cours...</p>";
 
       fetch('/upload', { method: 'POST', body: formData })
         .then(res => res.json())
         .then(data => {
-          let html = `<p><strong>Plaque :</strong> ${data.plaque}</p><p><strong>Propriétaire :</strong> ${data.proprietaire}</p>`;
+          let html = `<p><strong>Méthode :</strong> ${mode.value}</p>`;
+          html += `<p><strong>Plaque :</strong> ${data.plaque}</p><p><strong>Propriétaire :</strong> ${data.proprietaire}</p>`;
           if (data.image_url) {
             html += `<img src="${data.image_url}" alt="Plaque détectée">`;
           }
@@ -76,13 +86,16 @@
         });
     }
 
-    // Upload d’image manuelle
+    // Upload manuel
     const uploadForm = document.getElementById('upload-form');
     const uploadInput = document.getElementById('upload-image');
     uploadForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const file = uploadInput.files[0];
       if (!file) return;
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('mode', mode.value);
       sendToServer(file);
     });
   </script>
