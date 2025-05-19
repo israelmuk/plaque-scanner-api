@@ -20,6 +20,7 @@
     <option value="plate">Plate Recognizer</option>
     <option value="openai">OpenAI Vision</option>
     <option value="local">OCR Local (Tesseract)</option>
+    <option value="deepseek">DeepSeek Vision (HuggingFace)</option>
   </select>
 
   <!-- Caméra -->
@@ -86,7 +87,6 @@
         });
     }
 
-    // Upload manuel
     const uploadForm = document.getElementById('upload-form');
     const uploadInput = document.getElementById('upload-image');
     uploadForm.addEventListener('submit', function(e) {
